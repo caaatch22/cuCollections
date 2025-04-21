@@ -69,7 +69,19 @@ struct slot_to_tuple {
  */
 template <typename Key>
 struct slot_is_filled {
-  Key empty_key_sentinel_;  ///< The value of the empty key sentinel
+  Key empty_sentinel_;   ///< The value of the empty key sentinel
+  Key erased_sentinel_;  ///< Key value that represents an erased slot
+
+  /**
+   * @brief Constructs `slot_is_filled` functor with the given sentinels
+   *
+   * @param empty_sentinel Key sentinel indicating an empty slot
+   * @param erased_sentinel Key sentinel indicating an erased slot
+   */
+  explicit constexpr slot_is_filled(Key const& empty_sentinel, Key const& erased_sentinel) noexcept
+    : empty_sentinel_{empty_sentinel}, erased_sentinel_{erased_sentinel}
+  {
+  }
 
   /**
    * @brief Indicates if the target slot `s` is filled.
@@ -82,7 +94,8 @@ struct slot_is_filled {
   template <typename S>
   __device__ bool operator()(S const& s)
   {
-    return not cuco::detail::bitwise_compare(thrust::get<0>(s), empty_key_sentinel_);
+    return not (cuco::detail::bitwise_compare(thrust::get<0>(s), empty_sentinel_) or
+                cuco::detail::bitwise_compare(thrust::get<0>(s), erased_sentinel_));
   }
 };
 
