@@ -249,6 +249,7 @@ class static_multimap<Key, Value, Scope, Allocator, ProbeSequence>::device_mutab
     auto expected_value = this->get_empty_value_sentinel();
 
     auto* slot_ptr     = reinterpret_cast<value_type*>(current_slot);
+    auto expected_pair = cuco::make_pair(expected_key, expected_value);
     auto* expected_ptr = reinterpret_cast<value_type*>(&expected_pair);
     auto* desired_ptr  = reinterpret_cast<value_type*>(&insert_pair);
     auto slot_ref      = cuda::atomic_ref<value_type, Scope>{*slot_ptr};
