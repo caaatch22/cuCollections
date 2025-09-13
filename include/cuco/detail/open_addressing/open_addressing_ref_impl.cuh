@@ -1729,8 +1729,8 @@ class open_addressing_ref_impl {
                                                               value_type expected,
                                                               Value desired) noexcept
   {
-    using packed_type =
-      cuda::std::conditional_t<sizeof(value_type) == 4, cuda::std::uint32_t, cuda::std::uint64_t>;
+    using packed_type = detail::select_packed_type<value_type>;
+    static_assert(not cuda::std::is_void_v<packed_type>, "packed_type must not be void in packed_cas");
 
     auto* slot_ptr     = reinterpret_cast<packed_type*>(address);
     auto* expected_ptr = reinterpret_cast<packed_type*>(&expected);
@@ -1863,7 +1863,7 @@ class open_addressing_ref_impl {
                                                         value_type expected,
                                                         Value desired) noexcept
   {
-    if constexpr (sizeof(value_type) <= 8) {
+    if constexpr (detail::is_packable<value_type>()) {
       return packed_cas(address, expected, desired);
     } else {
 #if (__CUDA_ARCH__ < 700)
@@ -1896,7 +1896,7 @@ class open_addressing_ref_impl {
                                                                value_type expected,
                                                                Value desired) noexcept
   {
-    if constexpr (sizeof(value_type) <= 8) {
+    if constexpr (detail::is_packable<value_type>()) {
       return packed_cas(address, expected, desired);
     } else {
       return cas_dependent_write(address, expected, desired);

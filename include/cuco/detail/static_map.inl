@@ -293,22 +293,21 @@ static_map<Key, Value, Scope, Allocator>::device_mutable_view::packed_cas(
   Key expected_key) noexcept
 {
   auto expected_value = this->get_empty_value_sentinel();
+  value_type expected_pair = cuco::make_pair(expected_key, expected_value);
 
-  cuco::detail::pair_converter<value_type> expected_pair{
-    cuco::make_pair(expected_key, expected_value)};
-  cuco::detail::pair_converter<value_type> new_pair{insert_pair};
+  auto* slot_ptr     = reinterpret_cast<value_type*>(current_slot);
+  auto* expected_ptr = reinterpret_cast<value_type*>(&expected_pair);
+  auto* desired_ptr  = reinterpret_cast<value_type*>(&insert_pair);
 
-  auto slot =
-    reinterpret_cast<cuda::atomic<typename cuco::detail::pair_converter<value_type>::packed_type>*>(
-      current_slot);
+  auto slot_ref = cuda::atomic_ref<value_type, Scope>{*slot_ptr};
 
-  bool success = slot->compare_exchange_strong(
-    expected_pair.packed, new_pair.packed, cuda::std::memory_order_relaxed);
+  bool success =
+    slot_ref.compare_exchange_strong(*expected_ptr, *desired_ptr, cuda::std::memory_order_relaxed);
   if (success) {
     return insert_result::SUCCESS;
   }
   // duplicate present during insert
-  else if (key_equal(insert_pair.first, expected_pair.pair.first)) {
+  else if (key_equal(insert_pair.first, expected_pair.first)) {
     return insert_result::DUPLICATE;
   }
 
@@ -610,17 +609,14 @@ __device__ bool static_map<Key, Value, Scope, Allocator>::device_mutable_view::e
     // Key exists, return true if successfully deleted
     if (key_equal(existing_key, k)) {
       if constexpr (cuco::detail::is_packable<value_type>()) {
-        auto slot = reinterpret_cast<
-          cuda::atomic<typename cuco::detail::pair_converter<value_type>::packed_type>*>(
-          current_slot);
-        cuco::detail::pair_converter<value_type> expected_pair{
-          cuco::make_pair(existing_key, existing_value)};
-        cuco::detail::pair_converter<value_type> new_pair{insert_pair};
+        auto* slot_ptr     = reinterpret_cast<value_type*>(current_slot);
+        auto* expected_ptr = reinterpret_cast<value_type*>(&expected_pair);
+        auto* desired_ptr  = reinterpret_cast<value_type*>(&insert_pair);
+        auto slot_ref      = cuda::atomic_ref<value_type, Scope>{*slot_ptr};
 
-        return slot->compare_exchange_strong(
-          expected_pair.packed, new_pair.packed, cuda::std::memory_order_relaxed);
-      }
-      if constexpr (not cuco::detail::is_packable<value_type>()) {
+        return slot_ref.compare_exchange_strong(
+          *expected_ptr, *desired_ptr, cuda::std::memory_order_relaxed);
+      } else {
         current_slot->second.compare_exchange_strong(
           existing_value, insert_pair.second, cuda::std::memory_order_relaxed);
         return current_slot->first.compare_exchange_strong(
@@ -664,17 +660,14 @@ __device__ bool static_map<Key, Value, Scope, Allocator>::device_mutable_view::e
       bool status;
       if (g.thread_rank() == src_lane) {
         if constexpr (cuco::detail::is_packable<value_type>()) {
-          auto slot = reinterpret_cast<
-            cuda::atomic<typename cuco::detail::pair_converter<value_type>::packed_type>*>(
-            current_slot);
-          cuco::detail::pair_converter<value_type> expected_pair{
-            cuco::make_pair(existing_key, existing_value)};
-          cuco::detail::pair_converter<value_type> new_pair{insert_pair};
+          auto* slot_ptr     = reinterpret_cast<value_type*>(current_slot);
+          auto* expected_ptr = reinterpret_cast<value_type*>(&expected_pair);
+          auto* desired_ptr  = reinterpret_cast<value_type*>(&insert_pair);
+          auto slot_ref      = cuda::atomic_ref<value_type, Scope>{*slot_ptr};
 
-          status = slot->compare_exchange_strong(
-            expected_pair.packed, new_pair.packed, cuda::std::memory_order_relaxed);
-        }
-        if constexpr (not cuco::detail::is_packable<value_type>()) {
+          status = slot_ref.compare_exchange_strong(
+            *expected_ptr, *desired_ptr, cuda::std::memory_order_relaxed);
+        } else {
           current_slot->second.compare_exchange_strong(
             existing_value, insert_pair.second, cuda::std::memory_order_relaxed);
           status = current_slot->first.compare_exchange_strong(

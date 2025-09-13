@@ -894,7 +894,7 @@ class operator_impl<
     auto const empty_value = ref_.empty_value_sentinel();
 
     // wait for payload only when init != sentinel and insert strategy is not `packed_cas`
-    auto constexpr wait_for_payload = (not UseDirectApply) and (sizeof(value_type) > 8);
+    auto constexpr wait_for_payload = (not UseDirectApply) and (detail::is_packable<value_type>());
 
     while (true) {
       auto const bucket_slots = storage_ref[*probing_iter];
@@ -972,7 +972,7 @@ class operator_impl<
     auto const empty_value = ref_.empty_value_sentinel();
 
     // wait for payload only when init != sentinel and insert strategy is not `packed_cas`
-    auto constexpr wait_for_payload = (not UseDirectApply) and (sizeof(value_type) > 8);
+    auto constexpr wait_for_payload = (not UseDirectApply) and (detail::is_packable<value_type>());
 
     while (true) {
       auto const bucket_slots = storage_ref[*probing_iter];
@@ -1057,7 +1057,7 @@ class operator_impl<
   {
     ref_type& ref_ = static_cast<ref_type&>(*this);
 
-    if constexpr (sizeof(value_type) <= 8) {
+    if constexpr (detail::is_packable<value_type>()) {
       return ref_.impl_.packed_cas(address, expected, desired);  // no need to wait for payload
     } else {
       using mapped_type = T;
