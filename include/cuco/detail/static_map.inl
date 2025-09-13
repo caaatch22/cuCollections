@@ -297,7 +297,7 @@ static_map<Key, Value, Scope, Allocator>::device_mutable_view::packed_cas(
 
   auto* slot_ptr     = reinterpret_cast<value_type*>(current_slot);
   auto* expected_ptr = reinterpret_cast<value_type*>(&expected_pair);
-  auto* desired_ptr  = reinterpret_cast<value_type*>(&insert_pair);
+  auto* desired_ptr  = reinterpret_cast<value_type const*>(&insert_pair);
 
   auto slot_ref = cuda::atomic_ref<value_type, Scope>{*slot_ptr};
 
@@ -664,7 +664,7 @@ __device__ bool static_map<Key, Value, Scope, Allocator>::device_mutable_view::e
           auto* slot_ptr     = reinterpret_cast<value_type*>(current_slot);
           auto expected_pair = cuco::make_pair(existing_key, existing_value);
           auto* expected_ptr = reinterpret_cast<value_type*>(&expected_pair);
-          auto* desired_ptr  = reinterpret_cast<value_type*>(&insert_pair);
+          auto* desired_ptr  = reinterpret_cast<value_type const*>(&insert_pair);
           auto slot_ref      = cuda::atomic_ref<value_type, Scope>{*slot_ptr};
 
           status = slot_ref.compare_exchange_strong(

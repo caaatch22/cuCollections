@@ -43,9 +43,9 @@ using select_packed_type = cuda::std::conditional_t<sizeof(value_type) == 1, cud
 #if (__CUDA_ARCH__ >= 900)
                            cuda::std::conditional_t<sizeof(value_type) == 16, __int128_t,
                            void>>>>>;
-#endif
+#else
                            void>>>>;
-
+#endif
 
 /**
  * @brief Indicates if a pair type can be packed.
