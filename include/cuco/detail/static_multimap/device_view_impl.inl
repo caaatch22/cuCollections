@@ -248,16 +248,13 @@ class static_multimap<Key, Value, Scope, Allocator, ProbeSequence>::device_mutab
     auto expected_key   = this->get_empty_key_sentinel();
     auto expected_value = this->get_empty_value_sentinel();
 
-    cuco::detail::pair_converter<value_type> expected_pair{
-      cuco::make_pair(expected_key, expected_value)};
-    cuco::detail::pair_converter<value_type> new_pair{insert_pair};
+    auto* slot_ptr     = reinterpret_cast<value_type*>(current_slot);
+    auto* expected_ptr = reinterpret_cast<value_type*>(&expected_pair);
+    auto* desired_ptr  = reinterpret_cast<value_type*>(&insert_pair);
+    auto slot_ref      = cuda::atomic_ref<value_type, Scope>{*slot_ptr};
 
-    auto slot = reinterpret_cast<
-      cuda::atomic<typename cuco::detail::pair_converter<value_type>::packed_type, Scope>*>(
-      current_slot);
-
-    bool success = slot->compare_exchange_strong(
-      expected_pair.packed, new_pair.packed, cuda::std::memory_order_relaxed);
+    bool success = slot_ref.compare_exchange_strong(
+      *expected_ptr, *desired_ptr, cuda::std::memory_order_relaxed);
     if (success) { return insert_result::SUCCESS; }
 
     return insert_result::CONTINUE;

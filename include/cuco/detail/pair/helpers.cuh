@@ -66,7 +66,7 @@ using select_packed_type = cuda::std::conditional_t<sizeof(value_type) == 1, cud
 template <typename Pair>
 __host__ __device__ constexpr bool is_packable()
 {
-  return not cuda::std::is_void_v<packed_t<Pair>> and
+  return not cuda::std::is_void_v<select_packed_type<Pair>> and
          cuda::std::has_unique_object_representations_v<Pair>;
 }
 
