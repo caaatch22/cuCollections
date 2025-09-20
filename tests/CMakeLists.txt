@@ -162,3 +162,13 @@ ConfigureTest(BLOOM_FILTER_TEST
 # - roaring_bitmap ---------------------------------------------------------------------------------
 ConfigureTest(ROARING_BITMAP_TEST
     roaring_bitmap/contains_test.cu)
+
+###################################################################################################
+# - flat_hash_map ---------------------------------------------------------------------------------
+ConfigureTest(FLAT_HASH_MAP_TEST
+    flat_hash_map/unique_sequence_test.cu
+    flat_hash_map/erase_test.cu
+    flat_hash_map/find_test.cu
+    flat_hash_map/insert_test.cu
+    flat_hash_map/rehash_test.cu
+    flat_hash_map/retrieve_all_test.cu)
